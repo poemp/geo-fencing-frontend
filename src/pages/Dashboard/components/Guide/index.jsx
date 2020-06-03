@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styles from './index.module.scss';
 import axios from 'axios';
-import {Message, Button,Notification} from '@alifd/next';
+import {Message, Button, Notification} from '@alifd/next';
 import url from '@/request';
 import {Map, Marker, MouseTool, PolyEditor, Polygon} from 'react-amap';
 
@@ -29,10 +29,10 @@ class Guide extends React.Component {
     };
     this.markerEvents = {
       click: (obj) => {
-        console.log('marker clicked!',obj)
+        console.log('marker clicked!', obj)
       },
       //拖拽完成
-      dragend:function (obj) {
+      dragend: function (obj) {
         console.log('marker dragend!', obj.lnglat);
         self.existsPolygon(obj.lnglat);
       }
@@ -63,9 +63,17 @@ class Guide extends React.Component {
     this.mapPlugins = ['ToolBar'];
     this.mapCenter = {longitude: 104.008315, latitude: 30.669832};
     this.existsPolygon = this.existsPolygon.bind(this);
+    this.getPolygonsById = this.getPolygonsById.bind(this);
   }
 
   componentWillMount = () => {
+    this.getPolygonsById();
+  };
+
+  /**
+   * 获取数据
+   */
+  getPolygonsById = () => {
     const that = this;
     axios.get(url.url + "/v1/polygons/getPolygonsById?providerId=1")
       .then(function (response) {
@@ -81,7 +89,6 @@ class Guide extends React.Component {
         Message.error(error.message);
       });
   };
-
   /**
    * 是不是存在
    */
@@ -96,9 +103,9 @@ class Guide extends React.Component {
       .then(function (response) {
         const args = {
           title: '返回消息',
-          content:  "经纬度[lng]:" +obj.lng + ", [lat]:"  +  obj.lat +  "，" + "是不是所在区域范围内:" + response.data,
+          content: "经纬度[lng]:" + obj.lng + ", [lat]:" + obj.lat + "，" + "是不是所在区域范围内:" + response.data,
           duration: 4500,
-          type:(response.data ? "success":"error")
+          type: (response.data ? "success" : "error")
         };
         Notification.open(args);
         that.setState(
@@ -164,6 +171,9 @@ class Guide extends React.Component {
     });
   };
 
+  /**
+   * 关闭数据
+   */
   close = () => {
     if (this.tool) {
       this.tool.close();
@@ -176,8 +186,35 @@ class Guide extends React.Component {
           {
             what: '关闭了鼠标工具',
             polygonActive: false
+          },()=>{
+            that.getPolygonsById();
           }
         )
+      })
+      .catch(function (error) {
+        console.error(error);
+        Message.error(error.message);
+      });
+  };
+
+  /**
+   * 删除
+   */
+  dropPolygon = () => {
+    if (this.tool) {
+      this.tool.close();
+    }
+    const that = this;
+    axios.post(url.url + "/v1/polygons/dropPolygon/1")
+      .then(function (response) {
+        that.setState(
+          {
+            what: '关闭了鼠标工具',
+            polygonActive: false
+          }, () => {
+            that.getPolygonsById();
+          }
+        );
       })
       .catch(function (error) {
         console.error(error);
@@ -226,7 +263,7 @@ class Guide extends React.Component {
               draggable={this.state.draggable}
             />
 
-            <Polygon path={this.state.polygonPath}>
+            <Polygon path={this.state.polygonPath} style={{fillColor:"#72F1F8",fillOpacity:"0.75",strokeColor:"#72F1F8"}}>
               <PolyEditor active={this.state.polygonActive} events={this.editorEvents}/>
             </Polygon>
             <MouseTool events={this.toolEvents}/>
@@ -234,29 +271,34 @@ class Guide extends React.Component {
           </Map>
         </div>
         <div style={{marginTop: "5px", marginBottom: "5px"}}>
-          <Button type="normal" onClick={() => {
+          <Button type="primary" onClick={() => {
             this.toggleVisible()
-          }}>可视化</Button>&nbsp;&nbsp;
-          <Button type="normal" onClick={() => {
+          }}>坐标可视化</Button>&nbsp;&nbsp;
+          <Button type="primary" onClick={() => {
             this.randomPosition()
-          }}>定位</Button>&nbsp;&nbsp;
-          <Button type="normal" onClick={() => {
+          }}>坐标定位</Button>&nbsp;&nbsp;
+          <Button type="primary" onClick={() => {
             this.toggleClickable()
-          }}>回调</Button>&nbsp;&nbsp;
-          <Button type="normal" onClick={() => {
+          }}>坐标回调</Button>&nbsp;&nbsp;
+          <Button type="primary" onClick={() => {
             this.toggleDraggable()
-          }}>拖拽</Button>&nbsp;&nbsp;
-          <Button type="normal" onClick={() => {
+          }}>坐标可拖拽</Button>&nbsp;&nbsp;
+          <Button type="primary" onClick={() => {
             this.drawMarker()
           }}>开始编辑坐标
           </Button>&nbsp;&nbsp;
-          <Button type="normal" onClick={() => {
+
+          <Button type="secondary" onClick={() => {
             this.drawPolygon()
           }}>开始编辑围栏
           </Button>&nbsp;&nbsp;
-          <Button type="normal" onClick={() => {
+          <Button type="secondary" onClick={() => {
             this.close()
           }}>结束编辑围栏
+          </Button>&nbsp;&nbsp;
+          <Button type="secondary" onClick={() => {
+            this.dropPolygon()
+          }}>删除围栏
           </Button>&nbsp;&nbsp;
         </div>
       </div>
